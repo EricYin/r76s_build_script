@@ -65,6 +65,11 @@ func downloadDirectory(currentURL string, currentLocalDir string) {
 			fmt.Println("ignore link :" + link + " ==> " + fullURL)
 			continue
 		}
+		
+		if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+			fmt.Println("ignore link :" + link + " ==> " + fullURL)
+			continue
+		}
 
 		if strings.HasSuffix(link, "/") {
 			subDirName := strings.TrimSuffix(link, "/")
