@@ -1,4 +1,4 @@
-name: Download and Create Pull Request via Temporary Branch
+name: Sync and Pull Request
 
 on:
   workflow_dispatch: # 手动触发按钮
