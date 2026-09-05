@@ -1,4 +1,4 @@
-name: Sync and Pull Request
+name: Sync to Branch
 
 on:
   workflow_dispatch: # 手动触发按钮
@@ -7,19 +7,15 @@ jobs:
   run-and-sync:
     runs-on: ubuntu-latest
     
-    # 在这里显式声明本作业所需的最低及必要权限
     permissions:
-      contents: write       # 允许机器人创建临时分支、提交和推送代码
-      pull-requests: write  # 允许机器人创建、修改和管理 Pull Request
+      contents: write       
 
     steps:
-     # 核心修复步骤：在签出代码前，配置 Git 允许超长路径和兼容处理
     - name: Fix Git Long Paths Configuration
       run: |
-         git config --global core.longpaths true
-         # 如果是符号链接导致的问题，可以视情况强制允许
-         git config --global core.symlinks false
-    
+        git config --global core.longpaths true
+        git config --global core.symlinks false
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -35,35 +31,40 @@ jobs:
 
     - name: List and Copy Files
       run: |
-        echo "=== 1. Listing downloaded files ==="
+        echo "=== 1. Summary of downloaded content ==="
+        # 统计目录数量（排除 download_dir 本身）
+        DIR_COUNT=$(find download_dir -mindepth 1 -type d | wc -l)
+        # 统计文件数量
+        FILE_COUNT=$(find download_dir -type f | wc -l)
+        
+        echo "Total Directories: $DIR_COUNT"
+        echo "Total Files: $FILE_COUNT"
+        
+        echo "=== 2. Listing downloaded files ==="
         find download_dir
         
-        echo "=== 2. Copying files to git directory ==="
+        echo "=== 3. Copying files to git directory ==="
         cp -rf download_dir/* git_repo/
 
-    - name: Check For Changes
-      id: check_changes
+    - name: Check Changes and Push to Temp Branch
       run: |
         cd git_repo
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@://github.com"
+        
         if [ -n "$(git status --porcelain)" ]; then
-          echo "Changes detected, will proceed with PR."
-          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected, processing temporary branch..."
+          TEMP_BRANCH="auto-update-files-${{ github.ref_name }}"
+          
+          git checkout -b "$TEMP_BRANCH"
+          git add .
+          git commit -m "Manual auto-update files via cooluc.go"
+          git push origin "$TEMP_BRANCH" --force
+          
+          echo "Successfully pushed changes to branch: $TEMP_BRANCH"
         else
           echo "=========================================="
           echo "NOTICE: No updates found. Content is identical!"
           echo "=========================================="
-          echo "### 📢 Notice: No updates found. Skipping PR creation." >> $GITHUB_STEP_SUMMARY
-          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "### 📢 Notice: No updates found. No branch was created/updated." >> $GITHUB_STEP_SUMMARY
         fi
-
-    - name: Create Pull Request via Temp Branch
-      if: steps.check_changes.outputs.has_changes == 'true'
-      uses: peter-evans/create-pull-request@v6
-      with:
-        path: git_repo
-        branch: auto-update-files-${{ github.ref_name }}
-        title: "chore: manual auto-update files to ${{ github.ref_name }}"
-        body: "This is an automated pull request created from a temporary branch containing the latest downloaded files."
-        commit-message: "Manual auto-update files via cooluc.go"
-        base: ${{ github.ref_name }}
-        delete-branch: true
