@@ -1,0 +1,62 @@
+name: Download and Create Pull Request via Temporary Branch
+
+on:
+  workflow_dispatch: # 手动触发按钮
+
+jobs:
+  run-and-sync:
+    runs-on: ubuntu-latest
+    
+    # 在这里显式声明本作业所需的最低及必要权限
+    permissions:
+      contents: write       # 允许机器人创建临时分支、提交和推送代码
+      pull-requests: write  # 允许机器人创建、修改和管理 Pull Request
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        path: git_repo
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Run Go Script
+      run: go run ./git_repo/sync/cooluc.go
+
+    - name: List and Copy Files
+      run: |
+        echo "=== 1. Listing downloaded files ==="
+        find download_dir
+        
+        echo "=== 2. Copying files to git directory ==="
+        cp -rf download_dir/* git_repo/
+
+    - name: Check For Changes
+      id: check_changes
+      run: |
+        cd git_repo
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Changes detected, will proceed with PR."
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "=========================================="
+          echo "NOTICE: No updates found. Content is identical!"
+          echo "=========================================="
+          echo "### 📢 Notice: No updates found. Skipping PR creation." >> $GITHUB_STEP_SUMMARY
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Pull Request via Temp Branch
+      if: steps.check_changes.outputs.has_changes == 'true'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        path: git_repo
+        branch: auto-update-files-${{ github.ref_name }}
+        title: "chore: manual auto-update files to ${{ github.ref_name }}"
+        body: "This is an automated pull request created from a temporary branch containing the latest downloaded files."
+        commit-message: "Manual auto-update files via cooluc.go"
+        base: ${{ github.ref_name }}
+        delete-branch: true
