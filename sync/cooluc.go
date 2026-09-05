@@ -11,7 +11,7 @@ import (
 )
 
 const baseURL = "https://init.cooluc.com/"
-const outputDir = ".\\init3\\"
+const outputDir = "./download_dir/"
 
 func main() {
 	err := os.MkdirAll(outputDir, os.ModePerm)
