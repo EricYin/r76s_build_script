@@ -13,6 +13,13 @@ jobs:
       pull-requests: write  # 允许机器人创建、修改和管理 Pull Request
 
     steps:
+     # 核心修复步骤：在签出代码前，配置 Git 允许超长路径和兼容处理
+    - name: Fix Git Long Paths Configuration
+      run: |
+         git config --global core.longpaths true
+         # 如果是符号链接导致的问题，可以视情况强制允许
+         git config --global core.symlinks false
+    
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
