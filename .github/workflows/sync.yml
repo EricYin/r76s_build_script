@@ -20,6 +20,8 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: git_repo
+        # 获取所有分支和历史，确保能够顺利推送到远程
+        fetch-depth: 0
 
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -32,9 +34,7 @@ jobs:
     - name: List and Copy Files
       run: |
         echo "=== 1. Summary of downloaded content ==="
-        # 统计目录数量（排除 download_dir 本身）
         DIR_COUNT=$(find download_dir -mindepth 1 -type d | wc -l)
-        # 统计文件数量
         FILE_COUNT=$(find download_dir -type f | wc -l)
         
         echo "Total Directories: $DIR_COUNT"
@@ -53,10 +53,19 @@ jobs:
         git config --global user.email "github-actions[bot]@://github.com"
         
         if [ -n "$(git status --porcelain)" ]; then
-          echo "Changes detected, processing temporary branch..."
+          echo "Changes detected, cleaning up old branch if exists..."
           TEMP_BRANCH="auto-update-files-${{ github.ref_name }}"
           
+          # 1. 强行删除本地已存在的同名临时分支（如果有，|| true 防止没有分支时报错中断）
+          git branch -D "$TEMP_BRANCH" || true
+          
+          # 2. 强行删除远程已存在的同名临时分支（如果有）
+          git push origin --delete "$TEMP_BRANCH" || true
+          
+          echo "Creating and shifting to the fresh temporary branch..."
+          # 3. 重新创建并切换到干净的临时分支
           git checkout -b "$TEMP_BRANCH"
+          
           git add .
           git commit -m "Manual auto-update files via cooluc.go"
           git push origin "$TEMP_BRANCH" --force
