@@ -41,6 +41,8 @@ on:
         required: false
         default: 'BUILD_FAST=y ENABLE_BPF=y ENABLE_LTO=y ENABLE_LRNG=y ENABLE_MOLD=y KERNEL_CLANG_LTO=y'
         type: string
+env:
+  LLVM: https://github.com/EricYin/openwrt-llvm-toolchain/releases/download/22.0.2/clang-22.0.2-x86_64-unknown-linux-gnu.tar.xz
 
 jobs:
   build:
@@ -103,7 +105,7 @@ jobs:
         export PATH="/opt/clang/bin:$PATH"
         echo "/opt/clang/bin" >> $GITHUB_PATH
         sudo mkdir /opt/clang
-        wget -q https://github.com/EricYin/openwrt-llvm-toolchain/releases/download/clang-22.0.2-x86_64-unknown-linux-gnu.tar/clang-22.0.2-x86_64-unknown-linux-gnu.tar.xz
+        wget -q $LLVM
         sudo tar --strip-components=1 -C /opt/clang -xf clang-*-x86_64-unknown-linux-gnu.tar.xz
         rm -rf clang-*-x86_64-unknown-linux-gnu.tar.xz
         clang --version
