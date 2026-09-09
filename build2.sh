@@ -34,9 +34,10 @@ fi
 # IP Location
 export isCN=US
 
+export OTA_URL="."
 # script url
 # export mirror=http://127.0.0.1:8080
-export mirror=./
+export mirror=.
 
 export github="github.com"
 code_mirror="github.com"
@@ -76,7 +77,8 @@ if [ "$1" = "dev" ]; then
     export branch=openwrt-25.12
     export version=dev
 elif [ "$1" = "rc2" ]; then
-    latest_release="v$(curl -s $mirror/tags/v25)"
+    # latest_release="v$(curl -s $mirror/tags/v25)"
+    latest_release="v$(cat "$mirror/tags/v25")"
     export branch=$latest_release
     export version=rc2
 fi
@@ -157,7 +159,8 @@ case "$platform" in
 esac
 
 # print build opt
-get_kernel_version=$(curl -s $mirror/tags/kernel-6.18)
+# get_kernel_version=$(curl -s $mirror/tags/kernel-6.18)
+get_kernel_version=$(cat "$mirror/tags/kernel-6.18")
 kmod_hash=$(echo -e "$get_kernel_version" | awk -F'HASH-' '{print $2}' | awk '{print $1}' | tail -1 | md5sum | awk '{print $1}')
 kmodpkg_name=$(echo $(echo -e "$get_kernel_version" | awk -F'HASH-' '{print $2}' | awk '{print $1}')~$(echo $kmod_hash)-r1)
 echo -e "${GREEN_COLOR}Kernel: $kmodpkg_name ${RES}"
@@ -205,7 +208,8 @@ git clone --depth=1 https://$code_mirror/openwrt/openwrt -b $branch
 
 if [ -d openwrt ]; then
     cd openwrt
-    curl -Os $mirror/openwrt/patch/key2.tar.gz && tar zxf key2.tar.gz && rm -f key2.tar.gz
+    # curl -Os $mirror/openwrt/patch/key2.tar.gz && tar zxf key2.tar.gz && rm -f key2.tar.gz
+    cp "$mirror/openwrt/patch/key2.tar.gz" . && tar zxf key2.tar.gz && rm -f key2.tar.gz
 else
     echo -e "${RED_COLOR}Failed to download source code${RES}"
     exit 1
@@ -265,12 +269,14 @@ scripts=(
   99_clean_build_cache.sh
 )
 for script in "${scripts[@]}"; do
-  curl -sO "$mirror/openwrt/scripts/$script"
+    # curl -sO "$mirror/openwrt/scripts/$script"
+    cp "$mirror/openwrt/scripts/$script" .
 done
 if [ -n "$git_password" ] && [ -n "$private_url" ]; then
     curl -u openwrt:$git_password -sO "$private_url"
 else
-    curl -sO $mirror/openwrt/scripts/10-custom.sh
+    # curl -sO $mirror/openwrt/scripts/10-custom.sh
+    cp "$mirror/openwrt/scripts/10-custom.sh" .
 fi
 chmod 0755 *sh
 [ "$(whoami)" = "runner" ] && group "patching openwrt"
@@ -287,26 +293,34 @@ rm -f 0*-*.sh 10-custom.sh
 
 # Load devices Config
 if [ "$platform" = "x86_64" ]; then
-    curl -s $mirror/openwrt/25-config-musl-x86 > .config
+    # curl -s $mirror/openwrt/25-config-musl-x86 > .config
+    cat "$mirror/openwrt/25-config-musl-x86" > .config
 elif [ "$platform" = "rk3568" ]; then
-    curl -s $mirror/openwrt/25-config-musl-r5s > .config
+    # curl -s $mirror/openwrt/25-config-musl-r5s > .config
+    cat "$mirror/openwrt/25-config-musl-r5s" > .config
 elif [ "$platform" = "rk3576" ]; then
-    curl -s $mirror/openwrt/25-config-musl-r76s > .config
+    # curl -s $mirror/openwrt/25-config-musl-r76s > .config
+    cat "$mirror/openwrt/25-config-musl-r76s" > .config
 elif [ "$platform" = "armv8" ]; then
-    curl -s $mirror/openwrt/25-config-musl-armsr-armv8 > .config
+    # curl -s $mirror/openwrt/25-config-musl-armsr-armv8 > .config
+    cat "$mirror/openwrt/25-config-musl-armsr-armv8" > .config
 else
-    curl -s $mirror/openwrt/25-config-musl-r4s > .config
+    # curl -s $mirror/openwrt/25-config-musl-r4s > .config
+    cat "$mirror/openwrt/25-config-musl-r4s" > .config
 fi
 
 # config-common
 if [ "$MINIMAL_BUILD" = "y" ]; then
-    curl -s $mirror/openwrt/25-config-minimal-common >> .config
+    # curl -s $mirror/openwrt/25-config-minimal-common >> .config
+    cat "$mirror/openwrt/25-config-minimal-common" >> .config
     echo 'VERSION_TYPE="minimal"' >> package/base-files/files/usr/lib/os-release
 elif [ "$STD_BUILD" = "y" ]; then
-    curl -s $mirror/openwrt/25-config-std-common >> .config
+    # curl -s $mirror/openwrt/25-config-std-common >> .config
+    cat "$mirror/openwrt/25-config-std-common" >> .config
     echo 'VERSION_TYPE="standard"' >> package/base-files/files/usr/lib/os-release
 else
-    curl -s $mirror/openwrt/25-config-common >> .config
+    # curl -s $mirror/openwrt/25-config-common >> .config
+    cat "$mirror/openwrt/25-config-common" >> .config
     [ "$platform" = "armv8" ] && sed -i '/DOCKER/Id' .config
 fi
 
@@ -314,16 +328,19 @@ fi
 [ "$ENABLE_OTA" = "y" ] && [ "$version" = "rc2" ] && echo 'CONFIG_PACKAGE_luci-app-ota=y' >> .config
 
 # bpf
-curl -s $mirror/openwrt/generic/config-bpf >> .config
+# curl -s $mirror/openwrt/generic/config-bpf >> .config
+cat "$mirror/openwrt/generic/config-bpf" >> .config
 [ "$ENABLE_BPF" != "y" ] && sed -i '/KERNEL_DEBUG_INFO\|KERNEL_MODULE_ALLOW_BTF/d' .config
 
 # LTO
 export ENABLE_LTO=$ENABLE_LTO
-[ "$ENABLE_LTO" = "y" ] && curl -s $mirror/openwrt/generic/config-lto >> .config
+# [ "$ENABLE_LTO" = "y" ] && curl -s $mirror/openwrt/generic/config-lto >> .config
+[ "$ENABLE_LTO" = "y" ] && cat "$mirror/openwrt/generic/config-lto" >> .config
 
 # glibc
 [ "$ENABLE_GLIBC" = "y" ] && {
-    curl -s $mirror/openwrt/generic/config-glibc >> .config
+    # curl -s $mirror/openwrt/generic/config-glibc >> .config
+    cat "$mirror/openwrt/generic/config-glibc" >> .config
     sed -i '/NaiveProxy/d' .config
 }
 
@@ -381,7 +398,8 @@ echo -e "CONFIG_GCC_USE_VERSION_${gcc_version}=y\n" >> .config
 [ "$NO_KMOD" = "y" ] && sed -i '/CONFIG_ALL_KMODS=y/d; /CONFIG_ALL_NONSHARED=y/d' .config
 
 # build wwan pkgs for openwrt_core
-[ "$OPENWRT_CORE" = "y" ] && curl -s $mirror/openwrt/generic/config-wwan >> .config
+# [ "$OPENWRT_CORE" = "y" ] && curl -s $mirror/openwrt/generic/config-wwan >> .config
+[ "$OPENWRT_CORE" = "y" ] && cat "$mirror/openwrt/generic/config-wwan" >> .config
 
 # build mt7927-firmware pkgs for openwrt_core
 [ "$OPENWRT_CORE" = "y" ] && echo 'CONFIG_PACKAGE_kmod-mt7927-firmware=m' >> .config
@@ -401,7 +419,8 @@ fi
 }
 
 # add to core
-[ "$OPENWRT_CORE" = "y" ] && curl -s $mirror/openwrt/generic/config-build-only >> .config
+# [ "$OPENWRT_CORE" = "y" ] && curl -s $mirror/openwrt/generic/config-build-only >> .config
+[ "$OPENWRT_CORE" = "y" ] && cat "$mirror/openwrt/generic/config-build-only" >> .config
 
 # Toolchain Cache
 if [ "$BUILD_FAST" = "y" ]; then
@@ -412,7 +431,7 @@ if [ "$BUILD_FAST" = "y" ]; then
     if [ "$PLATFORM_ID" = "platform:el10" ]; then
         TOOLCHAIN_URL="http://127.0.0.1:8080"
     else
-        TOOLCHAIN_URL=https://"$github_proxy"github.com/sbwml/openwrt_caches/releases/download/openwrt-25.12
+        TOOLCHAIN_URL=https://"$github_proxy"github.com/ericyin/openwrt_caches/releases/download/openwrt-25.12
     fi
     curl -L ${TOOLCHAIN_URL}/toolchain_${LIBC}_${toolchain_arch}_gcc-${gcc_version}${tools_suffix}.tar.zst -o toolchain.tar.zst $CURL_BAR
     echo -e "\n${GREEN_COLOR}Process Toolchain ...${RES}"
@@ -463,60 +482,7 @@ else
     exit 1
 fi
 
-if [ "$platform" = "x86_64" ]; then
-    if [ "$NO_KMOD" != "y" ]; then
-        cp -a bin/targets/x86/*/packages $kmodpkg_name
-        rm -f $kmodpkg_name/Packages*
-        cp -a bin/packages/x86_64/base/rtl88*a-firmware*.apk $kmodpkg_name/ || true
-        [ "$OPENWRT_CORE" = "y" ] && {
-            cp -a bin/packages/x86_64/base/*3ginfo*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/x86_64/base/*modemband*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/x86_64/base/*sms-tool*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/x86_64/base/*quectel*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/aarch64_generic/base/natflow*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/aarch64_generic/base/appfilter*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/aarch64_generic/base/luci-app-oaf*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/aarch64_generic/base/luci-i18n-oaf*.apk $kmodpkg_name/ || true
-        }
-        [ "$ENABLE_DPDK" = "y" ] && {
-            cp -a bin/packages/x86_64/base/*dpdk*.apk $kmodpkg_name/ || true
-            cp -a bin/packages/x86_64/base/*numa*.apk $kmodpkg_name/ || true
-        }
-        bash kmod-sign $kmodpkg_name
-        tar zcf x86_64-$kmodpkg_name.tar.gz $kmodpkg_name
-        rm -rf $kmodpkg_name
-    fi
-    # OTA json
-    if [ "$1" = "rc2" ]; then
-        mkdir -p ota
-        if [ "$MINIMAL_BUILD" = "y" ]; then
-            OTA_URL="https://dev.cooluc.com/minimal/x86_64"
-        elif [ "$STD_BUILD" = "y" ]; then
-            OTA_URL="https://dev.cooluc.com/standard/x86_64"
-        else
-            OTA_URL="https://dev.cooluc.com/release/x86_64"
-        fi
-        VERSION=$(sed 's/v//g' version.txt)
-        SHA256=$(sha256sum bin/targets/x86/64*/*-generic-squashfs-combined-efi.img.gz | awk '{print $1}')
-        cat > ota/fw.json <<EOF
-{
-  "x86_64": [
-    {
-      "build_date": "$CURRENT_DATE",
-      "sha256sum": "$SHA256",
-      "url": "$OTA_URL/openwrt-$VERSION-x86-64-generic-squashfs-combined-efi.img.gz"
-    }
-  ]
-}
-EOF
-    fi
-    # Backup download cache
-    if [ "$isCN" = "CN" ] && [ "$1" = "rc2" ]; then
-        rm -rf dl/geo* dl/go-mod-cache
-        tar cf ../dl.gz dl
-    fi
-    exit 0
-elif [ "$platform" = "armv8" ]; then
+if [ "$platform" = "armv8" ]; then
     if [ "$NO_KMOD" != "y" ]; then
         cp -a bin/targets/armsr/armv8*/packages $kmodpkg_name
         rm -f $kmodpkg_name/Packages*
@@ -542,13 +508,6 @@ elif [ "$platform" = "armv8" ]; then
     # OTA json
     if [ "$1" = "rc2" ]; then
         mkdir -p ota
-        if [ "$MINIMAL_BUILD" = "y" ]; then
-            OTA_URL="https://dev.cooluc.com/minimal/armv8"
-        elif [ "$STD_BUILD" = "y" ]; then
-            OTA_URL="https://dev.cooluc.com/standard/armv8"
-        else
-            OTA_URL="https://dev.cooluc.com/release/armv8"
-        fi
         VERSION=$(sed 's/v//g' version.txt)
         SHA256=$(sha256sum bin/targets/armsr/armv8*/*-generic-squashfs-combined-efi.img.gz | awk '{print $1}')
         cat > ota/fw.json <<EOF
@@ -590,13 +549,6 @@ else
     # OTA json
     if [ "$1" = "rc2" ]; then
         mkdir -p ota
-        if [ "$MINIMAL_BUILD" = "y" ]; then
-            OTA_URL="https://dev.cooluc.com/minimal/$model"
-        elif [ "$STD_BUILD" = "y" ]; then
-            OTA_URL="https://dev.cooluc.com/standard/$model"
-        else
-            OTA_URL="https://dev.cooluc.com/release/$model"
-        fi
         VERSION=$(sed 's/v//g' version.txt)
         if [ "$model" = "nanopi-r4s" ]; then
             SHA256=$(sha256sum bin/targets/rockchip/armv8*/*-squashfs-sysupgrade.img.gz | awk '{print $1}')
