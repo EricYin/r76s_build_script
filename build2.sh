@@ -20,13 +20,6 @@ endgroup() {
     GROUP=
 }
 
-# check
-if [ "$(whoami)" != "sbwml" ] && [ -z "$git_name" ] && [ -z "$git_password" ]; then
-    echo -e "\n${RED_COLOR} Not authorized. Execute the following command to provide authorization information:${RES}\n"
-    echo -e "${BLUE_COLOR} export git_name=your_username git_password=your_password${RES}\n"
-    exit 1
-fi
-
 #####################################
 #  NanoPi R4S OpenWrt Build Script  #
 #####################################
@@ -408,7 +401,7 @@ echo -e "CONFIG_GCC_USE_VERSION_${gcc_version}=y\n" >> .config
 if [ "$ENABLE_CCACHE" = "y" ]; then
     echo "CONFIG_CCACHE=y" >> .config
     [ "$(whoami)" = "runner" ] && echo "CONFIG_CCACHE_DIR=\"/builder/.ccache\"" >> .config
-    [ "$(whoami)" = "sbwml" ] && echo "CONFIG_CCACHE_DIR=\"/home/sbwml/.ccache\"" >> .config
+    # [ "$(whoami)" = "ericyin" ] && echo "CONFIG_CCACHE_DIR=\"/home/ericyin/.ccache\"" >> .config
     tools_suffix="_ccache"
 fi
 
