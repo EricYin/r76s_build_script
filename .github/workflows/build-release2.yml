@@ -57,6 +57,16 @@ jobs:
       with:
         path: build_script
 
+    - name: Compile OpenWrt
+      working-directory: /builder
+      id: compile
+      continue-on-error: false
+      run: |
+        ls .
+        cd ..
+        ls .
+        ../build_script/build2.sh ${{ env.build_version }} ${{ github.event.inputs.device }}
+
     - name: Setup variables
       run: |
         sudo timedatectl set-timezone 'Asia/Shanghai'
