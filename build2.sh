@@ -30,6 +30,9 @@ endgroup() {
 # IP Location
 export isCN=US
 
+# private gitea
+export gitea="git.cooluc.com"
+
 export OTA_URL="."
 # script url
 # export mirror=http://127.0.0.1:8080
