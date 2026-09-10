@@ -57,15 +57,6 @@ jobs:
       with:
         path: build_script
 
-    - name: list folders
-      working-directory: /builder
-      continue-on-error: false
-      run: |
-        ls .
-        cd ..
-        ls .
-        ../build_script/build2.sh
-
     - name: Setup variables
       run: |
         sudo timedatectl set-timezone 'Asia/Shanghai'
@@ -102,6 +93,15 @@ jobs:
       uses: ericyin/actions@free-disk
       with:
         build-mount-path: /builder
+
+    - name: list folders
+      working-directory: /builder
+      continue-on-error: false
+      run: |
+        ls .
+        cd ..
+        ls .
+        ../build_script/build2.sh
 
     - name: Build System Setup
       uses: ericyin/actions@openwrt-build-setup
