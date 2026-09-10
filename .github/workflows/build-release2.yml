@@ -1,4 +1,4 @@
-name: Build releases
+name: Build releases - custom
 
 on:
   workflow_dispatch:
@@ -146,7 +146,8 @@ jobs:
         [ ${{ github.event.inputs.ccache }} = 'true' ] && export ENABLE_CCACHE=y
         [ -n ${{ github.event.inputs.root_password }} ] && export ROOT_PASSWORD="${{ github.event.inputs.root_password }}"
         # bash <(curl -sS http://127.0.0.1:8080/build.sh) ${{ env.build_version }} ${{ github.event.inputs.device }}
-        ${GITHUB_WORKSPACE}/build_script/build2.sh ${{ env.build_version }} ${{ github.event.inputs.device }}
+        shcmd="$GITHUB_WORKSPACE/build_script/build2.sh"
+        bash "$shcmd" ${{ env.build_version }} ${{ github.event.inputs.device }}
         cd openwrt
         if [ "${{ github.event.inputs.version }}" = release ]; then
           tags=OpenWrt-$(git describe --abbrev=0 --tags)
