@@ -270,7 +270,7 @@ for script in "${scripts[@]}"; do
     cp "$mirror/openwrt/scripts/$script" .
 done
 if [ -n "$git_password" ] && [ -n "$private_url" ]; then
-    echo "download from private_url: $private_url"
+    echo -e "${GREEN_COLOR}Download from private_url: $private_url${RES}"
     curl -u openwrt:$git_password -sO "$private_url"
 else
     # curl -sO $mirror/openwrt/scripts/10-custom.sh
