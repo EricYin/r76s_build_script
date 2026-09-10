@@ -1,0 +1,19 @@
+name: Build releases - custom
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+    name: Build ${{ github.event.inputs.device }}
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Checkout
+      continue-on-error: true
+      uses: actions/checkout@main
+      with:
+        path: build_script
