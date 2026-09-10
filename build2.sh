@@ -7,6 +7,9 @@ export PINK_COLOR='\e[1;35m'
 export SHAN='\e[1;33;5m'
 export RES='\e[0m'
 
+echo -e "${GREEN_COLOR}whoami: $(whoami) ${RES}\n"
+echo -e "${GREEN_COLOR}Platform id: $PLATFORM_ID ${RES}\n"
+
 GROUP=
 group() {
     endgroup
@@ -30,7 +33,7 @@ export isCN=US
 export OTA_URL="."
 # script url
 # export mirror=http://127.0.0.1:8080
-export mirror=.
+export mirror=../build_script
 
 export github="github.com"
 code_mirror="github.com"
@@ -77,7 +80,7 @@ elif [ "$1" = "rc2" ]; then
 fi
 
 # lan
-[ -n "$LAN" ] && export LAN=$LAN || export LAN=192.168.50.1
+[ -n "$LAN" ] && export LAN=$LAN || export LAN=192.168.50.237
 
 # platform
 case "$2" in
@@ -245,6 +248,7 @@ EOF
 
 # loader dl
 if [ -f ../dl.gz ]; then
+    echo -e "\n${GREEN_COLOR}found dl.gz, extract it ...${RES}\n"
     tar xf ../dl.gz -C .
 fi
 
@@ -266,6 +270,7 @@ for script in "${scripts[@]}"; do
     cp "$mirror/openwrt/scripts/$script" .
 done
 if [ -n "$git_password" ] && [ -n "$private_url" ]; then
+    echo "download from private_url: $private_url"
     curl -u openwrt:$git_password -sO "$private_url"
 else
     # curl -sO $mirror/openwrt/scripts/10-custom.sh
@@ -354,6 +359,7 @@ export ENABLE_LTO=$ENABLE_LTO
 
 # kernel - CLANG + LTO; Allow CONFIG_KERNEL_CC=clang / clang-18 / clang-xx
 if [ "$KERNEL_CLANG_LTO" = "y" ]; then
+    echo -e "${GREEN_COLOR}Enable KERNEL_CLANG_LTO${RES}\n"
     echo '# Kernel - CLANG LTO' >> .config
     if [ "$USE_GCC15" = "y" ] || [ "$USE_GCC16" = "y" ] && [ "$ENABLE_CCACHE" = "y" ]; then
         echo 'CONFIG_KERNEL_CC="ccache clang"' >> .config
@@ -366,6 +372,7 @@ fi
 
 # kernel - enable LRNG
 if [ "$ENABLE_LRNG" = "y" ]; then
+    echo -e "${GREEN_COLOR}Enable ENABLE_LRNG${RES}\n"
     echo -e "\n# Kernel - LRNG" >> .config
     echo "CONFIG_KERNEL_LRNG=y" >> .config
     echo "# CONFIG_PACKAGE_urandom-seed is not set" >> .config
@@ -594,6 +601,7 @@ EOF
     fi
     # Backup download cache
     if [ "$isCN" = "CN" ] && [ "$version" = "rc2" ]; then
+        echo -e "${GREEN_COLOR}Backup cache dl.gz ${RES}"
         rm -rf dl/geo* dl/go-mod-cache
         tar -cf ../dl.gz dl
     fi
