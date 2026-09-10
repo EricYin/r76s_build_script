@@ -37,7 +37,7 @@ on:
       build_options:
         description: 'Build options (separate multiple options with spaces)'
         required: false
-        default: 'BUILD_FAST=n ENABLE_BPF=y ENABLE_LTO=y ENABLE_LRNG=y ENABLE_MOLD=y KERNEL_CLANG_LTO=n'
+        default: 'BUILD_FAST=n ENABLE_BPF=y ENABLE_LTO=y ENABLE_LRNG=y ENABLE_MOLD=y KERNEL_CLANG_LTO=y'
         type: string
 env:
   LLVM: https://github.com/EricYin/openwrt-llvm-toolchain/releases/download/22.0.2/clang-22.0.2-x86_64-unknown-linux-gnu.tar.xz
@@ -102,16 +102,16 @@ jobs:
     - name: Build System Setup
       uses: ericyin/actions@openwrt-build-setup
 
-    # - name: Install LLVM
-    #   shell: bash
-    #   run: |
-    #     export PATH="/opt/clang/bin:$PATH"
-    #     echo "/opt/clang/bin" >> $GITHUB_PATH
-    #     sudo mkdir /opt/clang
-    #     wget -q $LLVM
-    #     sudo tar --strip-components=1 -C /opt/clang -xf clang-*-x86_64-unknown-linux-gnu.tar.xz
-    #     rm -rf clang-*-x86_64-unknown-linux-gnu.tar.xz
-    #     clang --version
+    - name: Install LLVM
+      shell: bash
+      run: |
+        export PATH="/opt/clang/bin:$PATH"
+        echo "/opt/clang/bin" >> $GITHUB_PATH
+        sudo mkdir /opt/clang
+        wget -q $LLVM
+        sudo tar --strip-components=1 -C /opt/clang -xf clang-*-x86_64-unknown-linux-gnu.tar.xz
+        rm -rf clang-*-x86_64-unknown-linux-gnu.tar.xz
+        clang --version
 
     - name: Restore Cached
       if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device != 'armv8' && github.event.inputs.device != 'nanopi-r4s' }}
