@@ -33,7 +33,10 @@ export isCN=US
 export OTA_URL="."
 # script url
 # export mirror=http://127.0.0.1:8080
-export mirror=../build_script
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+echo "Current script dir: $SCRIPT_DIR"
+export mirror=$SCRIPT_DIR
 
 export github="github.com"
 code_mirror="github.com"
