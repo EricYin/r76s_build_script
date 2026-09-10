@@ -6,14 +6,12 @@ on:
       device:
         description: 'Select the build device'
         required: true
-        default: 'x86_64'
+        default: 'nanopi-r76s'
         type: choice
         options:
-          - 'armv8'
           - 'nanopi-r4s'
           - 'nanopi-r5s'
           - 'nanopi-r76s'
-          - 'x86_64'
       version:
         description: 'Select the build version'
         required: true
@@ -29,7 +27,7 @@ on:
       lan_addr:
         description: 'Setting default LAN address'
         required: true
-        default: '10.0.0.1'
+        default: '192.168.50.237'
         type: string
       root_password:
         description: 'Setting default root password (Optional, No password by default)'
@@ -39,7 +37,7 @@ on:
       build_options:
         description: 'Build options (separate multiple options with spaces)'
         required: false
-        default: 'BUILD_FAST=y ENABLE_BPF=y ENABLE_LTO=y ENABLE_LRNG=y ENABLE_MOLD=y KERNEL_CLANG_LTO=y'
+        default: 'BUILD_FAST=n ENABLE_BPF=y ENABLE_LTO=y ENABLE_LRNG=y ENABLE_MOLD=y KERNEL_CLANG_LTO=y'
         type: string
 env:
   LLVM: https://github.com/EricYin/openwrt-llvm-toolchain/releases/download/22.0.2/clang-22.0.2-x86_64-unknown-linux-gnu.tar.xz
@@ -57,7 +55,7 @@ jobs:
       continue-on-error: true
       uses: actions/checkout@main
       with:
-        path: r4s_build_script
+        path: build_script
 
     - name: Setup variables
       run: |
@@ -83,10 +81,10 @@ jobs:
 
     # - name: Install Caddy Server
     #   run: |
-    #     sudo curl -sL -o /usr/bin/caddy https://github.com/ericyin/r4s_build_script/releases/download/caddy/caddy
+    #     sudo curl -sL -o /usr/bin/caddy https://github.com/ericyin/r76s_build_script/releases/download/caddy/caddy
     #     sudo chmod 755 /usr/bin/caddy
     #     echo ":8080 {" > caddyfile
-    #     echo "    root * $(pwd)/r4s_build_script" >> caddyfile
+    #     echo "    root * $(pwd)/build_script" >> caddyfile
     #     echo "    file_server browse" >> caddyfile
     #     echo "}" >> caddyfile
     #     sudo /usr/bin/caddy start --config caddyfile --adapter caddyfile
@@ -99,16 +97,16 @@ jobs:
     - name: Build System Setup
       uses: ericyin/actions@openwrt-build-setup
 
-    - name: Install LLVM
-      shell: bash
-      run: |
-        export PATH="/opt/clang/bin:$PATH"
-        echo "/opt/clang/bin" >> $GITHUB_PATH
-        sudo mkdir /opt/clang
-        wget -q $LLVM
-        sudo tar --strip-components=1 -C /opt/clang -xf clang-*-x86_64-unknown-linux-gnu.tar.xz
-        rm -rf clang-*-x86_64-unknown-linux-gnu.tar.xz
-        clang --version
+    # - name: Install LLVM
+    #   shell: bash
+    #   run: |
+    #     export PATH="/opt/clang/bin:$PATH"
+    #     echo "/opt/clang/bin" >> $GITHUB_PATH
+    #     sudo mkdir /opt/clang
+    #     wget -q $LLVM
+    #     sudo tar --strip-components=1 -C /opt/clang -xf clang-*-x86_64-unknown-linux-gnu.tar.xz
+    #     rm -rf clang-*-x86_64-unknown-linux-gnu.tar.xz
+    #     clang --version
 
     - name: Restore Cached
       if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device != 'armv8' && github.event.inputs.device != 'nanopi-r4s' }}
@@ -117,33 +115,33 @@ jobs:
         path: /builder/.ccache
         key: openwrt-25.12-${{ github.event.inputs.device }}-ccache
 
-    - name: Restore Cached (releases)
-      if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device == 'armv8' || github.event.inputs.device == 'nanopi-r4s' }}
-      continue-on-error: true
-      working-directory: /builder
-      run: |
-        curl -s https://api.github.com/repos/${{ github.repository }}/releases | grep 'browser_download_url' | grep ccache | grep ${{ github.event.inputs.device }} | awk -F '"' '{print $4}' | grep -v '^$' | xargs -n 1 wget -q
-        cat ${{ github.event.inputs.device }}.tar.* | tar -xf - || true
-        rm -rf ${{ github.event.inputs.device }}.tar.* || true
-        [ -d .ccache ] && cache_size=$(du -sb .ccache | awk '{print $1}') || cache_size=0
-        cache_size_mb=$(echo "scale=0; ${cache_size} / (1024 * 1024)" | bc)
-        echo "Cache Size: ~${cache_size_mb} MB (${cache_size} B)"
-        echo "Cache restored successfully"
-        echo "Cache restored from key: ${{ github.event.inputs.device }}"
+    # - name: Restore Cached (releases)
+    #   if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device == 'armv8' || github.event.inputs.device == 'nanopi-r4s' }}
+    #   continue-on-error: true
+    #   working-directory: /builder
+    #   run: |
+    #     curl -s https://api.github.com/repos/${{ github.repository }}/releases | grep 'browser_download_url' | grep ccache | grep ${{ github.event.inputs.device }} | awk -F '"' '{print $4}' | grep -v '^$' | xargs -n 1 wget -q
+    #     cat ${{ github.event.inputs.device }}.tar.* | tar -xf - || true
+    #     rm -rf ${{ github.event.inputs.device }}.tar.* || true
+    #     [ -d .ccache ] && cache_size=$(du -sb .ccache | awk '{print $1}') || cache_size=0
+    #     cache_size_mb=$(echo "scale=0; ${cache_size} / (1024 * 1024)" | bc)
+    #     echo "Cache Size: ~${cache_size_mb} MB (${cache_size} B)"
+    #     echo "Cache restored successfully"
+    #     echo "Cache restored from key: ${{ github.event.inputs.device }}"
 
     - name: Compile OpenWrt
       working-directory: /builder
       id: compile
       continue-on-error: true
-      env:
-        git_name: ${{ secrets.username }}
-        git_password: ${{ secrets.password }}
+      # env:
+      #   git_name: ${{ secrets.username }}
+      #   git_password: ${{ secrets.password }}
       run: |
         export ${{ github.event.inputs.build_options }} LAN=${{ github.event.inputs.lan_addr }} USE_GCC15=y
         [ ${{ github.event.inputs.ccache }} = 'true' ] && export ENABLE_CCACHE=y
         [ -n ${{ github.event.inputs.root_password }} ] && export ROOT_PASSWORD="${{ github.event.inputs.root_password }}"
         # bash <(curl -sS http://127.0.0.1:8080/build.sh) ${{ env.build_version }} ${{ github.event.inputs.device }}
-        ./build2.sh ${{ env.build_version }} ${{ github.event.inputs.device }}
+        ../build_script/build2.sh ${{ env.build_version }} ${{ github.event.inputs.device }}
         cd openwrt
         if [ "${{ github.event.inputs.version }}" = release ]; then
           tags=OpenWrt-$(git describe --abbrev=0 --tags)
@@ -177,28 +175,28 @@ jobs:
         path: /builder/.ccache
         key: openwrt-25.12-${{ github.event.inputs.device }}-ccache
 
-    - name: Create ccache tar files
-      if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device == 'armv8' || github.event.inputs.device == 'nanopi-r4s' }}
-      continue-on-error: true
-      working-directory: /builder
-      run: |
-        mkdir -p ccache
-        tar cf - .ccache | split -d -b 1800m - ccache/${{ github.event.inputs.device }}.tar.
+    # - name: Create ccache tar files
+    #   if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device == 'armv8' || github.event.inputs.device == 'nanopi-r4s' }}
+    #   continue-on-error: true
+    #   working-directory: /builder
+    #   run: |
+    #     mkdir -p ccache
+    #     tar cf - .ccache | split -d -b 1800m - ccache/${{ github.event.inputs.device }}.tar.
 
-    - name: Upload Cached (releases - ccache)
-      if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device == 'armv8' || github.event.inputs.device == 'nanopi-r4s' }}
-      continue-on-error: true
-      uses: ncipollo/release-action@main
-      with:
-        name: ccache
-        allowUpdates: true
-        tag: ccache
-        commit: master
-        replacesArtifacts: true
-        prerelease: true
-        token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: |
-          ${{ env.build_dir }}/ccache/*
+    # - name: Upload Cached (releases - ccache)
+    #   if: ${{ github.event.inputs.ccache == 'true' && github.event.inputs.device == 'armv8' || github.event.inputs.device == 'nanopi-r4s' }}
+    #   continue-on-error: true
+    #   uses: ncipollo/release-action@main
+    #   with:
+    #     name: ccache
+    #     allowUpdates: true
+    #     tag: ccache
+    #     commit: master
+    #     replacesArtifacts: true
+    #     prerelease: true
+    #     token: ${{ secrets.GITHUB_TOKEN }}
+    #     artifacts: |
+    #       ${{ env.build_dir }}/ccache/*
 
     - name: Prepare Firmware Files
       working-directory: /builder
